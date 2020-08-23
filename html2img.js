@@ -1,3 +1,21 @@
+function html2svgImg(el = document.body) {
+  var width = el.offsetWidth
+  var height = el.offsetHeight
+  var img = new Image
+  var html = el.outerHTML
+
+  html = html.replace(/<img(.*?)>/g, '<img$1/>')
+  
+  img.src = `data:image/svg+xml;base64,${btoa(
+    unescape(
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="${width}" height="${height}"><div xmlns="http://www.w3.org/1999/xhtml">${html}</div></foreignObject></svg>`
+      )
+    )
+  )}`
+  return img
+}
+
 async function html2img(el = document.documentElement, type=undefined, quality=undefined) {
   // create canvas
   var canvas = document.getElementById('html2imgCanvas')
