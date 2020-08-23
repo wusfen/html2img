@@ -163,8 +163,19 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
       try {
         el.toDataURL()
         context.drawImage(el, x, y, w, h)
-      } catch (error) {
-        console.warn('[draw canvas error]', el)
+      } catch (e) {
+        console.warn('[draw canvas error]', el, e)
+      }
+    }
+
+    // svg
+    if (el.tagName.toLowerCase() === 'svg') {
+      try {
+        var dataURI = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(el.outerHTML)))
+        var svgImg = await getImg(dataURI)
+        context.drawImage(svgImg, x, y, w, h)
+      } catch (e) {
+        console.warn('[draw svg error]', el, e)
       }
     }
 
@@ -281,13 +292,13 @@ async function getImg(url) {
         img.onload = function() {
           rs(img)
         }
-        img.onerror = function() {
-          console.warn('[draw getImg onerror]', url)
+        img.onerror = function(e) {
+          console.warn('[draw getImg onerror]', url, e)
           rs(new Image())
         }
       })
       .catch(e => {
-        console.warn('[draw getImg error]', url)
+        console.warn('[draw getImg error]', url, e)
         rs(new Image())
       })
   })
