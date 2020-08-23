@@ -171,7 +171,9 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
     // svg
     if (el.tagName.toLowerCase() === 'svg') {
       try {
-        var dataURI = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(el.outerHTML)))
+        var string = el.outerHTML
+        string = string.replace(/<foreignObject[\s\S]*?foreignObject>/g, '') // - foreignObject
+        var dataURI = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(string))) // unescape(encodeURIComponent(cn))
         var svgImg = await getImg(dataURI)
         context.drawImage(svgImg, x, y, w, h)
       } catch (e) {
