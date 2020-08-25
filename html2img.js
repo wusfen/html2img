@@ -184,19 +184,30 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
     context.save()
 
     // temp el
-    var textEl = node._textEl || document.createElement('_text_')
-    textEl._noDraw = true
-    node._textEl = textEl
-    node.parentNode.insertBefore(textEl, node)
-    textEl.appendChild(node)
-    textEl._textNode = node
+    var textEl = node._textEl
+    var startEl = node._startEl
+    var endEl = node._endEl
+    if (!textEl) {
+      textEl = document.createElement('text')
+      startEl = document.createElement('start')
+      endEl = document.createElement('end')
+      node.parentNode.insertBefore(textEl, node)
+      textEl.appendChild(startEl)
+      textEl.appendChild(node)
+      textEl.appendChild(endEl)
+      node._textEl = textEl
+      node._startEl = startEl
+      node._endEl = endEl
+    }
 
     // position
-    var rect = textEl.getBoundingClientRect()
-    var x = rect.x - rootX
-    var y = rect.y - rootY
-    var w = rect.width
-    var h = rect.height
+    var textRect = textEl.getBoundingClientRect()
+    var startRect = startEl.getBoundingClientRect()
+    var endRect = endEl.getBoundingClientRect()
+    var x = startRect.x - rootX
+    var y = textRect.y - rootY
+    var w = textRect.width
+    var h = textRect.height
 
     // style
     var style = getComputedStyle(textEl)
@@ -254,8 +265,8 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
     })
 
     // - temp el
-    textEl.parentNode.insertBefore(node, textEl)
-    textEl.parentNode.removeChild(textEl)
+    // textEl.parentNode.insertBefore(node, textEl)
+    // textEl.parentNode.removeChild(textEl)
 
     context.restore()
   }
