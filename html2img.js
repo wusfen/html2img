@@ -16,6 +16,8 @@ async function html2svgImg(el = document.body) {
   // cloneNode
   var cloneNode = el.cloneNode(true)
   container.appendChild(cloneNode)
+  cloneNode.style.width = width + 'px'
+  cloneNode.style.height = height + 'px'
 
   // replace node
   el.parentNode.replaceChild(container, el)
