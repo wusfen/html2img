@@ -32,7 +32,7 @@
 </head>
 
 <body>
-  <div id="input" xcontenteditable="">
+  <div id="input" contenteditable="">
     <h1>html2img</h1>
 
     <h2>text</h2>
@@ -86,7 +86,7 @@
   <script src="./html2img.js"></script>
   <script>
     oninput = onload = async function () {
-      img = await html2svgImg(input);
+      img = await html2svgImg(input.input || input);
       output.src = img.src;
       // output.replaceWith(img.svg)
     };

@@ -3,39 +3,41 @@ async function html2svgImg(el = document.body) {
   var cloneNode = el.cloneNode(true)
   var width = el.offsetWidth
   var height = el.offsetHeight
-  el.parentNode.replaceChild(cloneNode, el)
+  // var fragment = document.createDocumentFragment()
+  // fragment.appendChild(cloneNode)
+  // document.documentElement.appendChild(cloneNode)
 
-  // getComputedStyle
-  var initialStyleEl = document.createElement('div')
-  document.documentElement.appendChild(initialStyleEl)
-  var initialStyle = getComputedStyle(initialStyleEl)
-  computeStyle(cloneNode)
+  // defaultStyle
+  var defaultStyleEl = document.createElement('div')
+  document.documentElement.appendChild(defaultStyleEl)
+  var defaultStyle = getComputedStyle(defaultStyleEl)
 
-  function computeStyle(el) {
+  // loop
+  loop(el, cloneNode)
+  function loop(el, cloneNode) {
+    // computeStyle
     var style = getComputedStyle(el)
 
-    el.style.boxSizing = style.boxSizing
-    el.style.margin = style.margin
-    el.style.padding = style.padding
-    el.style.border = style.border
-    el.style.font = style.font
-    for (let si = 0; si < style.length; si++) {
-      let key = style[si]
+    // userAgent: input, ...
+    'boxSizing margin padding border background color font'.split(' ')
+      .forEach(key=>cloneNode.style[key]=style[key])
+
+    // !=default
+    for (let i = 0; i < style.length; i++) {
+      let key = style[i]
       let value = style[key]
-      if (value !== initialStyle[key]) {
-        el.style[key] = value
+      if (value !== defaultStyle[key]) {
+        cloneNode.style[key] = value
       }
     }
-    el.style['-webkit-text-fill-color'] = ''
 
-    setTimeout(() => {
-      // el.setAttribute('class', '')
-    }, 1);
+    // xxx
+    cloneNode.style['-webkit-text-fill-color'] = ''
+    cloneNode.style['text-fill-color'] = ''
 
-    var children = el.children
-    for (var ci = 0; ci < children.length; ci++) {
-      var child = children[ci]
-      computeStyle(child)
+    // children
+    for (let i = 0; i < el.children.length; i++) {
+      loop(el.children[i], cloneNode.children[i])
     }
   }
 
@@ -43,7 +45,7 @@ async function html2svgImg(el = document.body) {
   var imgs = cloneNode.querySelectorAll('img')
   for (let i = 0; i < imgs.length; i++) {
     let img = imgs[i]
-    img.src = await imgSrc2base64(img.src)
+    img.src = await imgSrc2dataURL(img.src)
   }
 
   // background-image to base64
@@ -52,7 +54,7 @@ async function html2svgImg(el = document.body) {
     let element = all[i]
     let bg = getComputedStyle(element).backgroundImage.match(/url\("(.*?)"\)|$/)[1]
     if (bg) {
-      element.style.backgroundImage = `url(${await imgSrc2base64(bg)})`
+      element.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
     }
   }
 
@@ -62,17 +64,13 @@ async function html2svgImg(el = document.body) {
   // canvas
   // todo old draw to cloneNode
 
-  // replace node back
-  // cloneNode.parentNode.replaceChild(el, cloneNode)
-  initialStyleEl.parentNode.removeChild(initialStyleEl)
+  defaultStyleEl.parentNode.removeChild(defaultStyleEl)
 
   // svg
   var svgString = '' +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <foreignObject width="${width}" height="${height}">
-        <main xmlns="http://www.w3.org/1999/xhtml">
-          ${new XMLSerializer().serializeToString(cloneNode)}
-        </main>
+        ${new XMLSerializer().serializeToString(cloneNode)}
       </foreignObject>
     </svg>`
   var svgWrap = document.createElement('div')
@@ -389,7 +387,7 @@ async function html2img(el = document.documentElement, type = undefined, quality
  */
 async function getImg(url) {
   return new Promise(rs => {
-    imgSrc2base64(url)
+    imgSrc2dataURL(url)
       .then(dataUrl => {
         var img = new Image()
         img.src = dataUrl
@@ -413,28 +411,21 @@ async function getImg(url) {
  * @param {string} url img.src
  * @returns {promise} 'data:image/png;base64,'
  */
-async function imgSrc2base64(url) {
-  return new Promise((resolve, reject) => {
+async function imgSrc2dataURL(url) {
+  return new Promise((resolve) => {
     var xhr = new XMLHttpRequest()
     xhr.open('GET', url, true)
     xhr.responseType = 'blob'
-    xhr.onload = function () {
-      if (/^(2..|304)/.test(xhr.status)) {
-        var blob = this.response
+    xhr.onloadend = function () {
+      var blob = this.response
+      if (blob) {
         var fileReader = new FileReader()
-        fileReader.onloadend = function (e) {
-          var result = e.target.result
-          resolve(result)
-        }
+        fileReader.onloadend = e => resolve(e.target.result)
         fileReader.readAsDataURL(blob)
       } else {
         resolve()
         console.warn('[img to base64 error]', url)
       }
-    }
-    xhr.onerror = function () {
-      resolve()
-      console.warn('[img to base64 error]', url)
     }
     xhr.send()
   })
