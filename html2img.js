@@ -1,26 +1,33 @@
 async function html2svgImg(el = document.body) {
-  var width = el.offsetWidth
-  var height = el.offsetHeight
-
-  // container
-  var container = document.createElement('div')
-
-  // style
-  var styleWrap = document.createElement('div')
-  var styles = document.querySelectorAll('style')
-  styles.forEach(style => {
-    styleWrap.appendChild(style.cloneNode(true))
-  })
-  container.appendChild(styleWrap)
-
   // cloneNode
   var cloneNode = el.cloneNode(true)
-  container.appendChild(cloneNode)
+  var width = el.offsetWidth
+  var height = el.offsetHeight
   cloneNode.style.width = width + 'px'
   cloneNode.style.height = height + 'px'
+  el.parentNode.replaceChild(cloneNode, el)
 
-  // replace node
-  el.parentNode.replaceChild(container, el)
+  // getComputedStyle
+  function computeStylex(el) {
+    var style = getComputedStyle(el)
+    el._style = style
+    var parentStyle = el.parentNode._style || {}
+    for (let si = 0; si < style.length; si++) {
+      let key = style[si]
+      let value = style[key]
+      if (value !== parentStyle[key]) {
+        setTimeout(() => { // !!
+          el.style[key] = value
+        })
+      }
+    }
+
+    var children = el.children
+    for (var ci = 0; ci < children.length; ci++) {
+      var child = children[ci]
+      computeStyle(child)
+    }
+  }
 
   // img.src to base64
   var imgs = cloneNode.querySelectorAll('img')
@@ -34,7 +41,6 @@ async function html2svgImg(el = document.body) {
   for (let i = 0; i < all.length; i++) {
     let element = all[i]
     let bg = getComputedStyle(element).backgroundImage.match(/url\("(.*?)"\)|$/)[1]
-    console.log(bg)
     if (bg) {
       element.style.backgroundImage = `url(${await imgSrc2base64(bg)})`
     }
@@ -43,19 +49,25 @@ async function html2svgImg(el = document.body) {
   // border-image to base64
   // todo
 
+  // canvas
+  // todo old draw to cloneNode
+
   // replace node back
-  container.parentNode.replaceChild(el, container)
+  // cloneNode.parentNode.replaceChild(el, cloneNode)
 
   // svg
-  var svgWrap = document.createElement('div')
   var htmlStyle = getComputedStyle(document.documentElement)
-  var svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" style="box-sizing:${htmlStyle.boxSizing};font-size:${htmlStyle.fontSize}">
-    <foreignObject width="${width}" height="${height}">
-      <div xmlns="http://www.w3.org/1999/xhtml">
-        ${new XMLSerializer().serializeToString(container)}
-      </div>
-    </foreignObject>
-  </svg>`
+  var svgString = '' +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"
+      style="box-sizing:${htmlStyle.boxSizing};font-size:${htmlStyle.fontSize};line-height:${htmlStyle.lineHeight}"
+    >
+      <foreignObject width="${width}" height="${height}">
+        <main xmlns="http://www.w3.org/1999/xhtml">
+          ${new XMLSerializer().serializeToString(cloneNode)}
+        </main>
+      </foreignObject>
+    </svg>`
+  var svgWrap = document.createElement('div')
   svgWrap.innerHTML = svgString
   var svg = svgWrap.firstChild
 
@@ -399,7 +411,7 @@ async function imgSrc2base64(url) {
     xhr.open('GET', url, true)
     xhr.responseType = 'blob'
     xhr.onload = function () {
-      if (String(this.status).match(/^(2..|304)/)) {
+      if (/^(2..|304)/.test(xhr.status)) {
         var blob = this.response
         var fileReader = new FileReader()
         fileReader.onloadend = function (e) {
@@ -408,11 +420,13 @@ async function imgSrc2base64(url) {
         }
         fileReader.readAsDataURL(blob)
       } else {
-        reject()
+        resolve()
+        console.warn('[img to base64 error]', url)
       }
     }
     xhr.onerror = function () {
-      reject()
+      resolve()
+      console.warn('[img to base64 error]', url)
     }
     xhr.send()
   })
