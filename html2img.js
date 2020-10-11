@@ -423,7 +423,7 @@ async function imgSrc2dataURL(url) {
         fileReader.onloadend = e => resolve(e.target.result)
         fileReader.readAsDataURL(blob)
       } else {
-        resolve()
+        resolve('')
         console.warn('[img to base64 error]', url)
       }
     }
