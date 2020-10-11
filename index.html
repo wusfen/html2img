@@ -85,7 +85,7 @@
     <script src="./html2img.js"></script>
     <script>
       oninput = onload = async function () {
-        var img = await html2img(input);
+        var img = await html2svgImg(input);
         output.src = img.src;
       };
     </script>

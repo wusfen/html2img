@@ -1,22 +1,75 @@
-function html2svgImg(el = document.body) {
+async function html2svgImg(el = document.body) {
   var width = el.offsetWidth
   var height = el.offsetHeight
-  var img = new Image
-  var html = el.outerHTML
 
-  html = html.replace(/<img(.*?)>/g, '<img$1/>')
-  
-  img.src = `data:image/svg+xml;base64,${btoa(
-    unescape(
-      encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="${width}" height="${height}"><div xmlns="http://www.w3.org/1999/xhtml">${html}</div></foreignObject></svg>`
-      )
-    )
-  )}`
+  // container
+  var container = document.createElement('div')
+
+  // style
+  var styleWrap = document.createElement('div')
+  var styles = document.querySelectorAll('style')
+  styles.forEach(style => {
+    styleWrap.appendChild(style.cloneNode(true))
+  })
+  container.appendChild(styleWrap)
+
+  // cloneNode
+  var cloneNode = el.cloneNode(true)
+  container.appendChild(cloneNode)
+  cloneNode.style.width = width + 'px'
+  cloneNode.style.height = height + 'px'
+
+  // replace node
+  el.parentNode.replaceChild(container, el)
+
+  // img.src to base64
+  var imgs = cloneNode.querySelectorAll('img')
+  for (let i = 0; i < imgs.length; i++) {
+    let img = imgs[i]
+    img.src = await imgSrc2base64(img.src)
+  }
+
+  // background-image to base64
+  var all = cloneNode.querySelectorAll('*')
+  for (let i = 0; i < all.length; i++) {
+    let element = all[i]
+    let bg = getComputedStyle(element).backgroundImage.match(/url\("(.*?)"\)|$/)[1]
+    console.log(bg)
+    if (bg) {
+      element.style.backgroundImage = `url(${await imgSrc2base64(bg)})`
+    }
+  }
+
+  // border-image to base64
+  // todo
+
+  // replace node back
+  container.parentNode.replaceChild(el, container)
+
+  // svg
+  var svgWrap = document.createElement('div')
+  var htmlStyle = getComputedStyle(document.documentElement)
+  var svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" style="box-sizing:${htmlStyle.boxSizing};font-size:${htmlStyle.fontSize}">
+    <foreignObject width="${width}" height="${height}">
+      <div xmlns="http://www.w3.org/1999/xhtml">
+        ${new XMLSerializer().serializeToString(container)}
+      </div>
+    </foreignObject>
+  </svg>`
+  svgWrap.innerHTML = svgString
+  var svg = svgWrap.firstChild
+
+  // img
+  var img = new Image
+  img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`
+
+  // return
+  img.svg = svg
+  img.svgString = svgString
   return img
 }
 
-async function html2img(el = document.documentElement, type=undefined, quality=undefined) {
+async function html2img(el = document.documentElement, type = undefined, quality = undefined) {
   // create canvas
   var canvas = document.getElementById('html2imgCanvas')
   canvas = canvas || document.createElement('canvas')
@@ -215,19 +268,30 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
     context.save()
 
     // temp el
-    var textEl = node._textEl || document.createElement('_text_')
-    textEl._noDraw = true
-    node._textEl = textEl
-    node.parentNode.insertBefore(textEl, node)
-    textEl.appendChild(node)
-    textEl._textNode = node
+    var textEl = node._textEl
+    var startEl = node._startEl
+    var endEl = node._endEl
+    if (!textEl) {
+      textEl = document.createElement('text')
+      startEl = document.createElement('start')
+      endEl = document.createElement('end')
+      node.parentNode.insertBefore(textEl, node)
+      textEl.appendChild(startEl)
+      textEl.appendChild(node)
+      textEl.appendChild(endEl)
+      node._textEl = textEl
+      node._startEl = startEl
+      node._endEl = endEl
+    }
 
     // position
-    var rect = textEl.getBoundingClientRect()
-    var x = rect.x - rootX
-    var y = rect.y - rootY
-    var w = rect.width
-    var h = rect.height
+    var textRect = textEl.getBoundingClientRect()
+    var startRect = startEl.getBoundingClientRect()
+    var endRect = endEl.getBoundingClientRect()
+    var x = startRect.x - rootX
+    var y = textRect.y - rootY
+    var w = textRect.width
+    var h = textRect.height
 
     // style
     var style = getComputedStyle(textEl)
@@ -255,7 +319,7 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
       lines = text.split('\n')
       // pre-line
       if (style.whiteSpace.match('pre-line')) {
-        lines = text.split('\n').map(line=>line.trim())
+        lines = text.split('\n').map(line => line.trim())
       }
     } else {
       // normal, nowrap
@@ -285,8 +349,8 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
     })
 
     // - temp el
-    textEl.parentNode.insertBefore(node, textEl)
-    textEl.parentNode.removeChild(textEl)
+    // textEl.parentNode.insertBefore(node, textEl)
+    // textEl.parentNode.removeChild(textEl)
 
     context.restore()
   }
@@ -305,14 +369,14 @@ async function html2img(el = document.documentElement, type=undefined, quality=u
  */
 async function getImg(url) {
   return new Promise(rs => {
-    imgUrl2DataUrl(url)
+    imgSrc2base64(url)
       .then(dataUrl => {
         var img = new Image()
         img.src = dataUrl
-        img.onload = function() {
+        img.onload = function () {
           rs(img)
         }
-        img.onerror = function(e) {
+        img.onerror = function (e) {
           console.warn('[draw getImg onerror]', url, e)
           rs(new Image())
         }
@@ -329,16 +393,16 @@ async function getImg(url) {
  * @param {string} url img.src
  * @returns {promise} 'data:image/png;base64,'
  */
-async function imgUrl2DataUrl(url) {
+async function imgSrc2base64(url) {
   return new Promise((resolve, reject) => {
     var xhr = new XMLHttpRequest()
     xhr.open('GET', url, true)
     xhr.responseType = 'blob'
-    xhr.onload = function() {
+    xhr.onload = function () {
       if (String(this.status).match(/^(2..|304)/)) {
         var blob = this.response
         var fileReader = new FileReader()
-        fileReader.onloadend = function(e) {
+        fileReader.onloadend = function (e) {
           var result = e.target.result
           resolve(result)
         }
@@ -347,7 +411,7 @@ async function imgUrl2DataUrl(url) {
         reject()
       }
     }
-    xhr.onerror = function() {
+    xhr.onerror = function () {
       reject()
     }
     xhr.send()
