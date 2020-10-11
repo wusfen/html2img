@@ -17,22 +17,22 @@
       padding: 1em;
       background: #f7f7f7;
     }
+    #input h3 {
+      margin: 0;
+      color: red;
+      border: solid 1px #ddd;
+    }
 
     #output {
       flex: 1;
       box-shadow: 0px 1px 2px #69a3c3;
     }
 
-    h3 {
-      margin: 0;
-      color: red;
-      border: solid 1px #ddd;
-    }
   </style>
 </head>
 
 <body>
-  <div id="input" contenteditable="">
+  <div id="input" xcontenteditable="">
     <h1>html2img</h1>
 
     <h2>text</h2>
@@ -86,8 +86,9 @@
   <script src="./html2img.js"></script>
   <script>
     oninput = onload = async function () {
-      var img = await html2svgImg(input);
+      img = await html2svgImg(input);
       output.src = img.src;
+      // output.replaceWith(img.svg)
     };
   </script>
 </body>

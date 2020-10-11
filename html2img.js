@@ -3,24 +3,34 @@ async function html2svgImg(el = document.body) {
   var cloneNode = el.cloneNode(true)
   var width = el.offsetWidth
   var height = el.offsetHeight
-  cloneNode.style.width = width + 'px'
-  cloneNode.style.height = height + 'px'
   el.parentNode.replaceChild(cloneNode, el)
 
   // getComputedStyle
-  function computeStylex(el) {
+  var initialStyleEl = document.createElement('div')
+  document.documentElement.appendChild(initialStyleEl)
+  var initialStyle = getComputedStyle(initialStyleEl)
+  computeStyle(cloneNode)
+
+  function computeStyle(el) {
     var style = getComputedStyle(el)
-    el._style = style
-    var parentStyle = el.parentNode._style || {}
+
+    el.style.boxSizing = style.boxSizing
+    el.style.margin = style.margin
+    el.style.padding = style.padding
+    el.style.border = style.border
+    el.style.font = style.font
     for (let si = 0; si < style.length; si++) {
       let key = style[si]
       let value = style[key]
-      if (value !== parentStyle[key]) {
-        setTimeout(() => { // !!
-          el.style[key] = value
-        })
+      if (value !== initialStyle[key]) {
+        el.style[key] = value
       }
     }
+    el.style['-webkit-text-fill-color'] = ''
+
+    setTimeout(() => {
+      // el.setAttribute('class', '')
+    }, 1);
 
     var children = el.children
     for (var ci = 0; ci < children.length; ci++) {
@@ -54,13 +64,11 @@ async function html2svgImg(el = document.body) {
 
   // replace node back
   // cloneNode.parentNode.replaceChild(el, cloneNode)
+  initialStyleEl.parentNode.removeChild(initialStyleEl)
 
   // svg
-  var htmlStyle = getComputedStyle(document.documentElement)
   var svgString = '' +
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"
-      style="box-sizing:${htmlStyle.boxSizing};font-size:${htmlStyle.fontSize};line-height:${htmlStyle.lineHeight}"
-    >
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <foreignObject width="${width}" height="${height}">
         <main xmlns="http://www.w3.org/1999/xhtml">
           ${new XMLSerializer().serializeToString(cloneNode)}
