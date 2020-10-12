@@ -18,9 +18,9 @@ async function html2svgImg(el = document.body) {
     // computeStyle
     var style = getComputedStyle(el)
 
-    // userAgent: input, ...
+    // userAgent: input, th, ...
     'boxSizing margin padding border background color font'.split(' ')
-      .forEach(key=>cloneNode.style[key]=style[key])
+      .forEach(key => cloneNode.style[key] = style[key])
 
     // !=default
     for (let i = 0; i < style.length; i++) {
@@ -34,6 +34,18 @@ async function html2svgImg(el = document.body) {
     // xxx
     cloneNode.style['-webkit-text-fill-color'] = ''
     cloneNode.style['text-fill-color'] = ''
+    
+    // canvas
+    if (/canvas/i.test(el.tagName)) {
+      try {
+        cloneNode.style.backgroundImage = `url(${el.toDataURL()})`
+      } catch (e) {
+        console.warn('[canvas.toDataURL error]', el)
+      }
+    }
+
+    // ::before ::after
+    // todo
 
     // children
     for (let i = 0; i < el.children.length; i++) {
@@ -41,10 +53,14 @@ async function html2svgImg(el = document.body) {
     }
   }
 
+  // -- cloneNode root style
+  'margin position float transform'.split(' ')
+    .forEach(key => cloneNode.style[key] = '')
+
   // img.src to base64
-  var imgs = cloneNode.querySelectorAll('img')
-  for (let i = 0; i < imgs.length; i++) {
-    let img = imgs[i]
+  var imgList = cloneNode.querySelectorAll('img')
+  for (let i = 0; i < imgList.length; i++) {
+    let img = imgList[i]
     img.src = await imgSrc2dataURL(img.src)
   }
 
@@ -61,9 +77,7 @@ async function html2svgImg(el = document.body) {
   // border-image to base64
   // todo
 
-  // canvas
-  // todo old draw to cloneNode
-
+  // -- temp
   defaultStyleEl.parentNode.removeChild(defaultStyleEl)
 
   // svg
