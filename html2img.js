@@ -3,8 +3,6 @@ async function html2svgImg(el = document.body) {
   var cloneNode = el.cloneNode(true)
   var width = el.offsetWidth
   var height = el.offsetHeight
-  // var fragment = document.createDocumentFragment()
-  // fragment.appendChild(cloneNode)
   // document.documentElement.appendChild(cloneNode)
 
   // defaultStyle
@@ -13,8 +11,8 @@ async function html2svgImg(el = document.body) {
   var defaultStyle = getComputedStyle(defaultStyleEl)
 
   // loop
-  loop(el, cloneNode)
-  function loop(el, cloneNode) {
+  await loop(el, cloneNode)
+  async function loop(el, cloneNode) {
     // computeStyle
     var style = getComputedStyle(el)
 
@@ -34,7 +32,30 @@ async function html2svgImg(el = document.body) {
     // xxx
     cloneNode.style['-webkit-text-fill-color'] = ''
     cloneNode.style['text-fill-color'] = ''
-    
+    cloneNode.removeAttribute('class')
+
+    // img
+    if (/img/i.test(el.tagName)) {
+      cloneNode.src = await imgSrc2dataURL(el.src)
+    }
+
+    // background-image
+    let bg = style.backgroundImage.match(/url\("(.*?)"\)|$/)[1]
+    if (bg) {
+      cloneNode.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
+    }
+
+    // border-image
+    let bdi = style.borderImageSource.match(/url\("(.*?)"\)|$/)[1]
+    if (bdi) {
+      let dataURL = await imgSrc2dataURL(bdi)
+      // cloneNode.style.borderImageSource = `url(${dataURL})` // invalid?: !!webkit not in style attr
+      var borderImage = String(style.borderImage).replace(/url\("(.*?)"\)/, `url(${dataURL})`)
+      cloneNode.style.borderImage = borderImage // invalid?
+      cloneNode.setAttribute('style', cloneNode.getAttribute('style') + `;border-image:${borderImage}`) // add to style attr: sometimes invalid
+      // todo: fix by <style>
+    }
+
     // canvas
     if (/canvas/i.test(el.tagName)) {
       try {
@@ -49,33 +70,13 @@ async function html2svgImg(el = document.body) {
 
     // children
     for (let i = 0; i < el.children.length; i++) {
-      loop(el.children[i], cloneNode.children[i])
+      await loop(el.children[i], cloneNode.children[i])
     }
   }
 
   // -- cloneNode root style
   'margin position float transform'.split(' ')
     .forEach(key => cloneNode.style[key] = '')
-
-  // img.src to base64
-  var imgList = cloneNode.querySelectorAll('img')
-  for (let i = 0; i < imgList.length; i++) {
-    let img = imgList[i]
-    img.src = await imgSrc2dataURL(img.src)
-  }
-
-  // background-image to base64
-  var all = cloneNode.querySelectorAll('*')
-  for (let i = 0; i < all.length; i++) {
-    let element = all[i]
-    let bg = getComputedStyle(element).backgroundImage.match(/url\("(.*?)"\)|$/)[1]
-    if (bg) {
-      element.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
-    }
-  }
-
-  // border-image to base64
-  // todo
 
   // -- temp
   defaultStyleEl.parentNode.removeChild(defaultStyleEl)

@@ -17,17 +17,31 @@
       padding: 1em;
       background: #f7f7f7;
     }
+
     #input h3 {
       margin: 0;
       color: red;
       border: solid 1px #ddd;
     }
 
+    #input .bg {
+      width: 300px;
+      height: 100px;
+      background: url('https://dss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=3984473917,238095211&fm=26&gp=0.jpg');
+      background-size: contain;
+    }
+
+    #input .bdi {
+      width: 300px;
+      height: 100px;
+      border: 10px solid #000;
+      border-image: url('https://dss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=3984473917,238095211&fm=26&gp=0.jpg') 30 round;
+    }
+
     #output {
       flex: 1;
       box-shadow: 0px 1px 2px #69a3c3;
     }
-
   </style>
 </head>
 
@@ -58,6 +72,10 @@
     <h2>img</h2>
     <img style="width: 200px; height: 100px;"
       src="https://dss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=3984473917,238095211&fm=26&gp=0.jpg" />
+    <h2>bg</h2>
+    <div class="bg"></div>
+    <h2>bdi</h2>
+    <div class="bdi"></div>
     <h2>svg</h2>
     <svg width="256" height="256" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
       <path
