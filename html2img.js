@@ -19,8 +19,9 @@ async function html2svgImg(el = document.body) {
     var style = getComputedStyle(el)
 
     // userAgent: input, ...
-    'boxSizing margin padding border background color font'.split(' ')
-      .forEach(key=>cloneNode.style[key]=style[key])
+    'boxSizing margin padding border background color font'
+      .split(' ')
+      .forEach(key => (cloneNode.style[key] = style[key]))
 
     // !=default
     for (let i = 0; i < style.length; i++) {
@@ -52,7 +53,9 @@ async function html2svgImg(el = document.body) {
   var all = cloneNode.querySelectorAll('*')
   for (let i = 0; i < all.length; i++) {
     let element = all[i]
-    let bg = getComputedStyle(element).backgroundImage.match(/url\("(.*?)"\)|$/)[1]
+    let bg = getComputedStyle(element).backgroundImage.match(
+      /url\("(.*?)"\)|$/
+    )[1]
     if (bg) {
       element.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
     }
@@ -67,7 +70,8 @@ async function html2svgImg(el = document.body) {
   defaultStyleEl.parentNode.removeChild(defaultStyleEl)
 
   // svg
-  var svgString = '' +
+  var svgString =
+    '' +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <foreignObject width="${width}" height="${height}">
         ${new XMLSerializer().serializeToString(cloneNode)}
@@ -78,8 +82,10 @@ async function html2svgImg(el = document.body) {
   var svg = svgWrap.firstChild
 
   // img
-  var img = new Image
-  img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`
+  var img = new Image()
+  img.src = `data:image/svg+xml;base64,${btoa(
+    unescape(encodeURIComponent(svgString))
+  )}`
 
   // return
   img.svg = svg
@@ -87,7 +93,11 @@ async function html2svgImg(el = document.body) {
   return img
 }
 
-async function html2img(el = document.documentElement, type = undefined, quality = undefined) {
+async function html2img(
+  el = document.documentElement,
+  type = undefined,
+  quality = undefined
+) {
   // create canvas
   var canvas = document.getElementById('html2imgCanvas')
   canvas = canvas || document.createElement('canvas')
@@ -262,7 +272,9 @@ async function html2img(el = document.documentElement, type = undefined, quality
       try {
         var string = el.outerHTML
         string = string.replace(/<foreignObject[\s\S]*?foreignObject>/g, '') // - foreignObject
-        var dataURI = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(string))) // unescape(encodeURIComponent(cn))
+        var dataURI =
+          'data:image/svg+xml;base64,' +
+          btoa(unescape(encodeURIComponent(string))) // unescape(encodeURIComponent(cn))
         var svgImg = await getImg(dataURI)
         context.drawImage(svgImg, x, y, w, h)
       } catch (e) {
@@ -412,7 +424,7 @@ async function getImg(url) {
  * @returns {promise} 'data:image/png;base64,'
  */
 async function imgSrc2dataURL(url) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     var xhr = new XMLHttpRequest()
     xhr.open('GET', url, true)
     xhr.responseType = 'blob'
