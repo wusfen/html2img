@@ -3,8 +3,6 @@ async function html2svgImg(el = document.body) {
   var cloneNode = el.cloneNode(true)
   var width = el.offsetWidth
   var height = el.offsetHeight
-  // var fragment = document.createDocumentFragment()
-  // fragment.appendChild(cloneNode)
   // document.documentElement.appendChild(cloneNode)
 
   // defaultStyle
@@ -13,12 +11,12 @@ async function html2svgImg(el = document.body) {
   var defaultStyle = getComputedStyle(defaultStyleEl)
 
   // loop
-  loop(el, cloneNode)
-  function loop(el, cloneNode) {
+  await loop(el, cloneNode)
+  async function loop(el, cloneNode) {
     // computeStyle
     var style = getComputedStyle(el)
 
-    // userAgent: input, ...
+    // userAgent: input, th, ...
     'boxSizing margin padding border background color font'
       .split(' ')
       .forEach(key => (cloneNode.style[key] = style[key]))
@@ -35,38 +33,60 @@ async function html2svgImg(el = document.body) {
     // xxx
     cloneNode.style['-webkit-text-fill-color'] = ''
     cloneNode.style['text-fill-color'] = ''
+    cloneNode.removeAttribute('class')
+
+    // img
+    if (/img/i.test(el.tagName)) {
+      cloneNode.src = await imgSrc2dataURL(el.src)
+    }
+
+    // background-image
+    let bg = style.backgroundImage.match(/url\("(.*?)"\)|$/)[1]
+    if (bg) {
+      cloneNode.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
+    }
+
+    // border-image
+    let bdi = style.borderImageSource.match(/url\("(.*?)"\)|$/)[1]
+    if (bdi) {
+      let dataURL = await imgSrc2dataURL(bdi)
+      // cloneNode.style.borderImageSource = `url(${dataURL})` // invalid?: !!webkit not in style attr
+      var borderImage = String(style.borderImage).replace(
+        /url\("(.*?)"\)/,
+        `url(${dataURL})`
+      )
+      cloneNode.style.borderImage = borderImage // invalid?
+      cloneNode.setAttribute(
+        'style',
+        cloneNode.getAttribute('style') + `;border-image:${borderImage}`
+      ) // add to style attr: sometimes invalid
+      // todo: fix by <style>
+    }
+
+    // canvas
+    if (/canvas/i.test(el.tagName)) {
+      try {
+        cloneNode.style.backgroundImage = `url(${el.toDataURL()})`
+      } catch (e) {
+        console.warn('[canvas.toDataURL error]', el)
+      }
+    }
+
+    // ::before ::after
+    // todo
 
     // children
     for (let i = 0; i < el.children.length; i++) {
-      loop(el.children[i], cloneNode.children[i])
+      await loop(el.children[i], cloneNode.children[i])
     }
   }
 
-  // img.src to base64
-  var imgs = cloneNode.querySelectorAll('img')
-  for (let i = 0; i < imgs.length; i++) {
-    let img = imgs[i]
-    img.src = await imgSrc2dataURL(img.src)
-  }
+  // -- cloneNode root style
+  'margin position float transform'
+    .split(' ')
+    .forEach(key => (cloneNode.style[key] = ''))
 
-  // background-image to base64
-  var all = cloneNode.querySelectorAll('*')
-  for (let i = 0; i < all.length; i++) {
-    let element = all[i]
-    let bg = getComputedStyle(element).backgroundImage.match(
-      /url\("(.*?)"\)|$/
-    )[1]
-    if (bg) {
-      element.style.backgroundImage = `url(${await imgSrc2dataURL(bg)})`
-    }
-  }
-
-  // border-image to base64
-  // todo
-
-  // canvas
-  // todo old draw to cloneNode
-
+  // -- temp
   defaultStyleEl.parentNode.removeChild(defaultStyleEl)
 
   // svg
